@@ -11,13 +11,22 @@ if currency == nil || currency.empty? || account_id == nil || account_id.empty?
   exit
 end
 
-def transferwise_api_url; ENV["TRANSFERWISE_API_URL"]; end
-def transferwise_api_key; ENV["TRANSFERWISE_API_KEY"]; end
-def transferwise_account_id; ENV["TRANSFERWISE_ACCOUNT_ID"]; end
-def freeagent_api_url; ENV["FREEAGENT_API_URL"]; end
-def freeagent_client_id; ENV["FREEAGENT_API_CLIENT_ID"]; end
-def freeagent_client_secret; ENV["FREEAGENT_API_CLIENT_SECRET"]; end
-def freeagent_refresh_token; ENV["FREEAGENT_API_REFRESH_TOKEN"]; end
+def get_env(key)
+  value = ENV[key]
+  if value == nil || value.empty?
+    puts "#{key} environment variable is required"
+    exit
+  end
+  value
+end
+
+def transferwise_api_url; get_env("TRANSFERWISE_API_URL"); end
+def transferwise_api_key; get_env("TRANSFERWISE_API_KEY"); end
+def transferwise_account_id; get_env("TRANSFERWISE_ACCOUNT_ID"); end
+def freeagent_api_url; get_env("FREEAGENT_API_URL"); end
+def freeagent_client_id; get_env("FREEAGENT_API_CLIENT_ID"); end
+def freeagent_client_secret; get_env("FREEAGENT_API_CLIENT_SECRET"); end
+def freeagent_refresh_token; get_env("FREEAGENT_API_REFRESH_TOKEN"); end
 
 def freeagent_refresh_access_token
   url = File.join(freeagent_api_url, "token_endpoint")
