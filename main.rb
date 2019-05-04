@@ -6,7 +6,7 @@ require 'rest_client'
 currency = ARGV[0]
 account_id = ARGV[1]
 
-if currency == nil || account_id == nil
+if currency == nil || currency.empty? || account_id == nil || account_id.empty?
   puts "Usage: main.rb currency account_id"
   exit
 end
