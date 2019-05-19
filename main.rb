@@ -95,7 +95,7 @@ def upload_freeagent_statement(content, account_id)
 end
 
 transactions = freeagent_transactions(account_id)
-last_known = Date.parse(transactions.last["dated_on"]).to_time
+last_known = (Date.parse(transactions.last["dated_on"]) + 1).to_time - 0.001
 
 statement = transferwise_statement(currency, last_known)
 
