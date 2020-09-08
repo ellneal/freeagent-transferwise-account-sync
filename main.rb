@@ -22,7 +22,9 @@ end
 
 def transferwise_api_url; get_env("TRANSFERWISE_API_URL"); end
 def transferwise_api_key; get_env("TRANSFERWISE_API_KEY"); end
+def transferwise_profile_id; get_env("TRANSFERWISE_PROFILE_ID"); end
 def transferwise_account_id; get_env("TRANSFERWISE_ACCOUNT_ID"); end
+def transferwise_signing_key; get_env("TRANSFERWISE_SIGNING_KEY"); end
 def freeagent_api_url; get_env("FREEAGENT_API_URL"); end
 def freeagent_client_id; get_env("FREEAGENT_API_CLIENT_ID"); end
 def freeagent_client_secret; get_env("FREEAGENT_API_CLIENT_SECRET"); end
@@ -64,20 +66,50 @@ def transferwise_statement(currency, since)
   params = { currency: currency, intervalStart: since.strftime(iso8601), intervalEnd: end_date.strftime(iso8601) }
   url = File.join(
     transferwise_api_url,
+    "v3",
+    "profiles",
+    transferwise_profile_id,
     "borderless-accounts",
     transferwise_account_id,
     "statement.json?#{URI.encode_www_form(params)}",
   )
 
   begin
+    # the first request will always be forbidden
     raw = RestClient.get(url, { Authorization: "Bearer #{transferwise_api_key}" }) 
     response = JSON.parse(raw)
+  rescue RestClient::Forbidden => error
+    # get the nonce and retry the request with a signature
+    nonce = error.http_headers[:x_2fa_approval]
+    response = signed_transferwise_statement(url, nonce)
   rescue RestClient::Exception => error
     puts error.response
     raise error
   end
 
   response["transactions"].sort { |a, b| a["date"] <=> b["date"] }
+end
+
+def signed_transferwise_statement(url, nonce)
+  begin
+    key_pem = File.read(transferwise_signing_key)
+    key = OpenSSL::PKey::RSA.new(key_pem)
+
+    signature = Base64.strict_encode64(key.sign(OpenSSL::Digest::SHA256.new, nonce))
+
+    raw = RestClient.get(url, {
+      Authorization: "Bearer #{transferwise_api_key}",
+      x_2fa_approval: nonce,
+      x_signature: signature
+    })
+
+    response = JSON.parse(raw)
+  rescue RestClient::Exception => error
+    puts error.response
+    raise error
+  end
+
+  response
 end
 
 def upload_freeagent_statement(content, account_id)
